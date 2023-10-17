@@ -8,6 +8,7 @@ class User:
     id = None             #айдёюзера
     username = None       #телеграмм юзернейм
     last_message = None   #последнее сообщение юзеру
+    fio = None            #ФИО
 
     city = None           #город
     vuz = None            #вуз
@@ -22,6 +23,7 @@ class User:
     permission = None     #разрешение (admin,user,redactor)
 
     location = None       #место в карусели
+    registration_hub = None  #Хаб для регистрации
 
 
 
