@@ -24,6 +24,7 @@ class User:
 
     location = None       #место в карусели
     registration_hub = None  #Хаб для регистрации
+    create_hub = None        #Хаб для создания эвента
 
 
 

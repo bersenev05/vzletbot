@@ -1,6 +1,6 @@
 
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ContentType
 from classes.user import User, admin, cityes
 from classes.event import Event
 from data.base_file import userbase, eventbase, sort_eventbase
@@ -18,6 +18,16 @@ class StepsForm(StatesGroup):
     get_fio=State()
     get_phone=State()
     get_date=State()
+
+class AddEvent(StatesGroup):
+    get_name=State()
+    get_date=State()
+    get_time=State()
+    get_location = State()
+    get_url = State()
+    get_description = State()
+    get_vzletbusiness = State()
+    get_photo = State()
 
 
 bot = Bot(token = "6100104762:AAFVZRJCVVhtula5Bo6bGlDlpPtjuav7qlI",
@@ -60,6 +70,7 @@ eventbase["2"] = Event(name="Битва Креаторов",
                        vzletbusiness=True)
 
 
+#Старт
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
 
@@ -102,12 +113,19 @@ async def start(message: types.Message):
     #сохраняем последнее сообщение
     user.last_message = msg.message_id
 
-
+#Главное меню
 @dp.callback_query_handler(text = cityes)
 async def city(message: types.CallbackQuery):
 
     # получаем объект класса юзер. Чисто для укорачивания кода
     user = userbase[str(message.from_user.id)]
+
+    # Сортируем эвенты по датам
+    global eventbase
+    eventbase = await sort_eventbase(eventbase)
+
+    # Обнуляем карусель
+    user.location = None
 
     #Добавляем юзеру город
     user.city = message.data
@@ -173,6 +191,7 @@ async def city(message: types.CallbackQuery):
 #     png.close()
 
 
+#Движение по карусели эвентов
 callback_location = [f"event_registration_{index}" for index in list(eventbase.keys())]
 @dp.callback_query_handler(text=["eventsnext","eventsback"])
 async def events1(message: types.CallbackQuery):
@@ -182,10 +201,6 @@ async def events1(message: types.CallbackQuery):
 
     # добавляем действие
     await user.AddAction(f"листнул на эвент")
-
-    # Сортируем эвенты по датам
-    global eventbase
-    eventbase = await sort_eventbase(eventbase)
 
     #Движение по карусели
     if user.location == None:
@@ -213,11 +228,15 @@ async def events1(message: types.CallbackQuery):
     btn5 = InlineKeyboardButton(text="🗂 Главное меню", callback_data=user.city)
     ikb.row(btn1,btn2).add(btn3).add(btn5)
 
+    if str(user.id) in admin:
+        ikb.add(InlineKeyboardButton(text="Добавить мероприятие {admin}", callback_data="add_event"))
+        ikb.add(InlineKeyboardButton(text="Удалить мероприятие {admin}", callback_data="delete_event"))
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
                                                f"{event.description}\n\n"
-                                               f"<b>Дата:</b> {event.date} {event.time}")
+                                               f"<b>Дата:</b> {event.date}\n"
+                                               f"<b>Время:</b> {event.time}")
 
     # Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -228,6 +247,8 @@ async def events1(message: types.CallbackQuery):
     png.close()
 
 
+
+#Регистрация
 @dp.callback_query_handler(text = callback_location)
 async def registration1(message: types.CallbackQuery):
 
@@ -242,7 +263,7 @@ async def registration1(message: types.CallbackQuery):
                                                f"<b>🎟 Событие:</b>\n<code>{user.registration_hub.name}</code>\n\n"
                                                f"<b>🗓 Дата:</b>\n<code>{user.registration_hub.date} {user.registration_hub.time}</code>\n\n"
                                                f"<b>📍 Место:</b>\n<code>{user.registration_hub.location}</code>\n\n"
-                                               f"<b>Введи ФИО</b>")
+                                               f"<b>⚠️ Введи ФИО</b>")
 
     # Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -250,7 +271,6 @@ async def registration1(message: types.CallbackQuery):
                                  media=photo)
 
     await StepsForm.get_fio.set()
-
 
 @dp.message_handler(state=StepsForm.get_fio)
 async def registration2(message: types.Message, state: FSMContext):
@@ -264,6 +284,9 @@ async def registration2(message: types.Message, state: FSMContext):
     #Добавляем ФИО в базу
     user.fio = message.text
 
+    # добавляем действие
+    await user.AddAction(f"Имя: {user.fio}")
+
     # добавляем картинку и текст
     png = open(user.registration_hub.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<i>🕹 Регистрация</i>\n\n"
@@ -271,7 +294,7 @@ async def registration2(message: types.Message, state: FSMContext):
                                                f"<b>🗓 Дата:</b>\n<code>{user.registration_hub.date} {user.registration_hub.time}</code>\n\n"
                                                f"<b>📍 Место:</b>\n<code>{user.registration_hub.location}</code>\n\n"
                                                f"<b>🙎‍♂️ ФИО:</b>\n<code>{user.fio}</code>\n\n"
-                                               f"<b>Введи номер телефона</b>")
+                                               f"<b>⚠️Введи номер телефона</b>")
 
     # Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -279,7 +302,6 @@ async def registration2(message: types.Message, state: FSMContext):
                                  media=photo)
 
     await StepsForm.get_phone.set()
-
 
 @dp.message_handler(state=StepsForm.get_phone)
 async def registration3(message: types.Message, state: FSMContext):
@@ -292,6 +314,9 @@ async def registration3(message: types.Message, state: FSMContext):
 
     #Добавляем ФИО в базу
     user.phone = message.text
+
+    # добавляем действие
+    await user.AddAction(f"Номер: {user.phone}")
 
     ikb = InlineKeyboardMarkup()
     btn1 = InlineKeyboardButton(text="🔗 Общий чат мероприятия", url=user.registration_hub.url_to_tgchat)
@@ -323,10 +348,287 @@ async def registration3(message: types.Message, state: FSMContext):
 
 
 
+#Добавить мероприятие
+@dp.callback_query_handler(text = "add_event")
+async def add_event(message: types.CallbackQuery):
 
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
 
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
 
+    # добавляем картинку и текст
+    png = open(Path(dir_path,"files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>⚠️Введи название мероприятия</b>")
 
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_name.set()
+
+@dp.message_handler(state = AddEvent.get_name)
+async def add_event(message: types.Message, state: FSMContext):
+
+    await message.delete()
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    #Складируем инфу во временной памяти
+    await state.update_data(name=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path,"files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b> Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>⚠️Введи дату</b>\nФормат: дд.мм.гггг\nПример: 16.03.2024")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_date.set()
+
+@dp.message_handler(state=AddEvent.get_date)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(date=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>⚠️Введи время</b>\nФормат: чч:мм\nПример: 12:00")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_time.set()
+
+@dp.message_handler(state=AddEvent.get_time)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(time=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>⚠️Введи место</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_location.set()
+
+@dp.message_handler(state=AddEvent.get_location)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(location=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>⚠️Создайте пригласительную ссылку на общий чат мероприятия и отправьте</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_url.set()
+
+@dp.message_handler(state=AddEvent.get_url)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(url=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>⚠️Введите описание мероприятия. Максимум 90 знаков</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_description.set()
+
+@dp.message_handler(state=AddEvent.get_description)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(description=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
+                                               f"<b>⚠️Отправьте фото. Обязательно в виде файла</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_photo.set()
+
+@dp.message_handler(state=AddEvent.get_photo, content_types=ContentType.DOCUMENT)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    #Сохраняем фото
+    data = await state.get_data()
+    photo_name = (data['date']+data['time']+str(user.id)).replace('.','').replace(':','')
+    await message.document.download(destination_file=Path(dir_path,'files','photo',f"{photo_name}.png"))
+
+    # Складируем инфу во временной памяти
+    await state.update_data(photo_path=photo_name)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
+                                               f"<b>Фото загружено:</b>\n<code>{data['photo_path']}.png</code>\n\n"
+                                               f"<b>⚠️Подходит ли это мероприятие под бизнес-тематику?</b>\nФормат: True/False")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_vzletbusiness.set()
+
+@dp.message_handler(state=AddEvent.get_vzletbusiness)
+async def add_event(message: types.Message, state: FSMContext):
+
+    #удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    ikb = InlineKeyboardMarkup()
+    btn1 = InlineKeyboardButton(text="Опубликовать", callback_data="publicevent_")
+    btn2 = InlineKeyboardButton(text="Заполнить заново", callback_data="add_event")
+    btn3 = InlineKeyboardButton(text="Главное меню", callback_data=user.city)
+    ikb.add(btn1).add(btn2).add(btn3)
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(vzletbusiness=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", f"{data['photo_path']}.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название мероприятия:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
+                                               f"<b>Фото загружено:</b>\n<code>{data['photo_path']}.png</code>\n\n"
+                                               f"<b>Взлёт.Бизнес: </b>\n<code>{data['vzletbusiness']}</code>\n\n")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo,
+                                 reply_markup=ikb)
+
+    await state.finish()
 
 
 
