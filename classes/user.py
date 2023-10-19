@@ -1,7 +1,8 @@
 from datetime import datetime
 
-admin = ["5965231899"]
-cityes = ["Krasnoyarsk"]
+dad_admin = ["5965231899"]
+son_admin = ["5965231899"]
+cityes = ["Красноярск"]
 
 class User:
 

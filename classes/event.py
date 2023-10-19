@@ -1,5 +1,4 @@
-
-
+import data
 class Event:
 
     name = None
@@ -26,3 +25,18 @@ class Event:
         self.location = location
         self.time = time
 
+    def GetInfo(self):
+
+        message =(f'<b>Название:</b> {self.name}\n\n'
+                  f'<b>Описание:</b> {self.description}\n\n'
+                  f''
+                  f'<b>Дата:</b> {self.date}\n'
+                  f'<b>Время:</b> {self.time}\n'
+                  f'<b>Место:</b> {self.location}\n\n'
+                  f''
+                  f'<b>Создатель:</b> @{data.base_file.userbase[str(self.creator)].username}\n'
+                  f'<b>Чат:</b> {self.url_to_tgchat}\n'
+                  f'<b>Фото:</b> {self.photo_path}\n\n'
+                  f'<b>Бизнес:</b> {self.vzletbusiness}\n\n')
+
+        return message

@@ -27,3 +27,12 @@ async def sort_eventbase(eventbase):
                 eventbase[str(x)], eventbase[str(y)] = eventbase[str(y)], eventbase[str(x)]
     return eventbase
 
+async def sort_after_delete(eventbase,location):
+    new_eventbase = {}
+    del eventbase[location]
+
+    val = [eventbase[key] for key in eventbase.keys()]
+    for i in range(len(val)):
+        new_eventbase[str(i)] = val[i]
+
+    return new_eventbase
