@@ -32,6 +32,19 @@ class User:
     def __init__(self,username,id):
         self.id = id
         self.username = username
+        self.last_message = None
+        self.fio = None
+        self.city = None
+        self.vuz = None
+        self.phone = None
+        self.actions = []
+        self.target_keys = []
+        self.registrations = []
+        self.portfolio = None
+        self.permission = None
+        self.location = None
+        self.registration_hub = None
+        self.create_hub = None
 
     async def AddAction(self, action):
         time = datetime.now().strftime("%d.%m %H:%M:%S")

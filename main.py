@@ -30,13 +30,12 @@ class AddEvent(StatesGroup):
     get_photo = State()
 
 
-bot = Bot(token = "6100104762:AAEJWgdFyucF-6cUgyrzlzazLMZccxoZYB8",
+bot = Bot(token = "6100104762:AAGIoIHqnhBiHIwA-Rg-AuwV31VKPbqyip0",
           parse_mode="HTML")
 dp = Dispatcher(bot,storage=MemoryStorage())
 
 statisticbot = Bot(token = "6681358573:AAEDPtrd3jNn82es9LS69eDOicI0ih9FSxk",
                    parse_mode="HTML")
-
 
 
 eventbase["0"] = Event(name="Встреча клуба Росмолодежь.Бизнес",
@@ -77,12 +76,19 @@ async def start(message: types.Message):
     #удаляем сообщение
     await message.delete()
 
+
     #добавляем пользователя в базу данных
     if str(message.from_user.id) not in userbase:
+
         userbase[str(message.from_user.id)] = User(username=message.from_user.username,
                                                    id = message.from_user.id)
+        # оповещаем админов о новых пользователях
+        for adm in dad_admin:
+            await statisticbot.send_message(chat_id=adm,
+                                            text=f"Новый пользователь\n\n"
+                                                 f"{await userbase[str(message.from_user.id)].GetInfo()}")
 
-    #получаем объект класса юзер. Чисто для укорачивания кода
+    # получаем объект класса юзер. Чисто для укорачивания кода
     user = userbase[str(message.from_user.id)]
 
     #добавляем действие
@@ -104,11 +110,6 @@ async def start(message: types.Message):
                                photo = png)
     png.close()
 
-    #оповещаем админов о новых пользователях
-    for adm in dad_admin:
-        await statisticbot.send_message(chat_id=adm,
-                                        text=f"Новый пользователь\n\n"
-                                             f"{await user.GetInfo()}")
 
     #сохраняем последнее сообщение
     user.last_message = msg.message_id
@@ -187,7 +188,13 @@ async def events1(message: types.CallbackQuery):
     ikb = InlineKeyboardMarkup()
     btn1 = InlineKeyboardButton(text="Назад", callback_data="eventsback")
     btn2 = InlineKeyboardButton(text="Далее", callback_data="eventsnext")
-    btn3 = InlineKeyboardButton(text="🕹 Зарегистрироваться", callback_data=f"event_registration_{user.location}")
+
+    if str(user.id) in event.registrations:
+        btn3 = InlineKeyboardButton(text="✅ Вы зарегистрированы", url=f"{event.url_to_tgchat}")
+    else:
+        btn3 = InlineKeyboardButton(text="🕹 Зарегистрироваться", callback_data=f"event_registration_{user.location}")
+
+
     btn5 = InlineKeyboardButton(text="🗂 Главное меню", callback_data=user.city)
     ikb.row(btn1,btn2).add(btn3).add(btn5)
 
@@ -283,7 +290,7 @@ async def registration3(message: types.Message, state: FSMContext):
     await user.AddAction(f"Номер: {user.phone}")
 
     #Регистрируем пользователя на мероприятие
-    user.registration_hub.registrations.append(user)
+    user.registration_hub.registrations.append(str(user.id))
     user.registrations.append(user.registration_hub)
 
     ikb = InlineKeyboardMarkup()
@@ -313,15 +320,19 @@ async def registration3(message: types.Message, state: FSMContext):
     for event in user.registrations:
         allregs+= '📍' + event.name + '\n'
 
-         # Оповещаем админов
+    regfile = await user.registration_hub.GetInfoFile()
+
+    # Оповещаем админов
     for ad in list(set(dad_admin+[user.registration_hub.creator])):
-        await statisticbot.send_message(chat_id=ad,
-                                        text=f"<b>Регистрация на мероприятие</b>\n\n"
-                                             f"<b>🎟 Мероприятие:</b>\n<code>{user.registration_hub.name}</code>\n\n"
-                                             f"<b> 👤 Пользователь:</b>\n@{user.username} (<code>{user.id}</code>)\n\n"
-                                             f"<b>Номер:</b> \n{user.phone}\n\n"
-                                             f"<b>ФИО:</b> \n{user.fio}\n\n"
-                                             f"<b>🗂 Все реги:</b> \n<code>{allregs}</code>")
+
+        await statisticbot.send_document(chat_id=ad,
+                                         document=open(regfile, "rb"),
+                                         caption=f"<b>Регистрация на мероприятие</b>\n\n"
+                                                 f"<b>🎟 Мероприятие:</b>\n<code>{user.registration_hub.name}</code>\n\n"
+                                                 f"<b> 👤 Пользователь:</b>\n@{user.username} (<code>{user.id}</code>)\n\n"
+                                                 f"<b>Номер:</b> \n{user.phone}\n\n"
+                                                 f"<b>ФИО:</b> \n{user.fio}\n\n"
+                                                 f"<b>🗂 Все реги:</b> \n<code>{allregs}</code>")
 
 
     user.registration_hub = None
@@ -633,7 +644,7 @@ async def publicevent(message: types.CallbackQuery):
     for ad in dad_admin:
         await statisticbot.send_message(chat_id=ad,
                                         text = f"@{user.username} добавил мероприятие.\n\n"
-                                               f"{user.create_hub.GetInfo()}")
+                                               f"{await user.create_hub.GetInfo()}")
 
     global eventbase
     #Добавляем в базу эвентов новый эвент и обнуляем креатехаб

@@ -1,4 +1,8 @@
 import data
+import pathlib
+from pathlib import Path
+dir_path = pathlib.Path.cwd()
+
 class Event:
 
     name = None
@@ -24,8 +28,9 @@ class Event:
         self.date = date
         self.location = location
         self.time = time
+        self.registrations = []
 
-    def GetInfo(self):
+    async def GetInfo(self):
 
         message =(f'<b>Название:</b> {self.name}\n\n'
                   f'<b>Описание:</b> {self.description}\n\n'
@@ -40,3 +45,34 @@ class Event:
                   f'<b>Бизнес:</b> {self.vzletbusiness}\n\n')
 
         return message
+
+    async def GetInfoFile(self):
+
+        file = open(Path(dir_path, "files", "EventFiles", f"{self.name}.txt"), "w")
+
+        file.write(f'Название: {self.name}\n\n'
+                  f'Описание: {self.description}\n\n'
+                  f''
+                  f'Дата: {self.date}\n'
+                  f'Время: {self.time}\n'
+                  f'Место: {self.location}\n\n'
+                  f''
+                  f'Создатель: @{data.base_file.userbase[str(self.creator)].username}\n'
+                  f'Чат: {self.url_to_tgchat}\n'
+                  f'Фото: {self.photo_path}\n\n'
+                  f'Бизнес: {self.vzletbusiness}\n\n'
+                   f'-----------------------------------------\n\n')
+
+        file.write("ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ\n\n")
+
+        s=0
+        for id in self.registrations:
+            s+=1
+            user = data.base_file.userbase[id]
+            file.write(f'{s}. @{user.username}, {user.fio}, {user.phone}\n')
+
+        file.close()
+
+        return Path(dir_path, "files", "EventFiles", f"{self.name}.txt")
+
+
