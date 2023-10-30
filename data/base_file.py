@@ -10,6 +10,11 @@ userbase = {}
 eventbase = {}
 # имя : объект класса эвент
 
+learningbase = {}
+
+workbase = {}
+
+
 
 async def date(date1):
     ddmmyyyy = date1.split(".")

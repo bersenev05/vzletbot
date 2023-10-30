@@ -8,7 +8,7 @@
 
 Создатель: @vanya_slash
 Чат: https://t.me/+9PY3bcf3ZH01MDZi
-Фото: C:\Users\ivanb\OneDrive\Рабочий стол\vzletbot-main (1)\vzletbot-main\files\photo\institut.jpg
+Фото: C:\Users\Иван\Desktop\взлёт\vzletbot-main\files\photo\institut.jpg
 
 Бизнес: True
 
@@ -16,5 +16,4 @@
 
 ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ
 
-1. @makson_resh, Решетников Максим Андреевич, 89029613242
-2. @vanya_slash, Берсенев Иван Александрович, 79233692550
+1. @vanya_slash, Берсенев Иван Александрович, 79233692550

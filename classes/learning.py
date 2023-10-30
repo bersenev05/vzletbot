@@ -3,9 +3,9 @@ import pathlib
 from pathlib import Path
 dir_path = pathlib.Path.cwd()
 
-class Event:
+class Learning:
+    type = "Обучение"
 
-    type = "Мероприятие"
     name = None
     date = None
     time = None
