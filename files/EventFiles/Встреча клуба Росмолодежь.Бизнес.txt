@@ -8,7 +8,7 @@
 
 Создатель: @vanya_slash
 Чат: https://t.me/+9PY3bcf3ZH01MDZi
-Фото: C:\Users\ivanb\OneDrive\Рабочий стол\vzletbot-main (2)\vzletbot-main\files\photo\rosmol.jpg
+Фото: C:\Users\Иван\Desktop\vzletbot-main\files\photo\rosmol.jpg
 
 Бизнес: True
 
@@ -16,4 +16,3 @@
 
 ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ
 
-1. @sashaslasha, Берсенев Иван Александрович, 79233692550

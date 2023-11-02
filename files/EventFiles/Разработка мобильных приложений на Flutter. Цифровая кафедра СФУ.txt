@@ -8,7 +8,7 @@
 
 Создатель: @vanya_slash
 Чат: https://t.me/+9PY3bcf3ZH01MDZi
-Фото: C:\Users\Иван\Desktop\взлёт\vzletbot-main\files\photo\flutter.jpg
+Фото: C:\Users\Иван\Desktop\vzletbot-main\files\photo\flutter.jpg
 
 Бизнес: True
 

@@ -32,7 +32,7 @@ class AddEvent(StatesGroup):
     get_photo = State()
 
 
-bot = Bot(token = "6100104762:AAGFUHWhkBHRVdBRfLgMYd3xwYyLGMQeLwc",
+bot = Bot(token = "6100104762:AAHFkJs0zl8_o_ikSyOBwnea9fJDPhU3SBo",
           parse_mode="HTML")
 dp = Dispatcher(bot,storage=MemoryStorage())
 
@@ -180,8 +180,8 @@ async def city(message: types.CallbackQuery):
     ikb.add(btn1).add(btn2).add(btn3).add(btn4)
 
     #Получаем фото
-    png = open(Path(dir_path,"files", "photo", "cityes.png"),"rb")
-    photo = types.InputMediaPhoto(png, caption="Здесь собраны все самые классные возможности твоего города")
+    png = open(Path(dir_path,"files", "photo", "mainmenu.png"),"rb")
+    photo = types.InputMediaPhoto(png, caption="Здесь ты можешь найти мощное мероприятие, обучение или стажировку и мгновенно зарегистрироваться!")
 
     #Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -190,6 +190,37 @@ async def city(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
+
+
+@dp.callback_query_handler(text = "business")
+async def business_func(message: types.CallbackQuery):
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Выбрал {message.data}")
+
+    # клавиатура
+    ikb = InlineKeyboardMarkup()
+    btn1 = InlineKeyboardButton(text="🗂 Главное меню", callback_data=user.city)
+    ikb.add(btn1)
+
+    # Получаем фото
+    png = open(Path(dir_path, "files", "photo", "razrabotka.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption="Здесь ты сможешь опубликовать свой стартап, найти подходящий грант и даже интересных партнёров.\n\nТе, кто интересуются IT, смогут найти для себя тут бесплатное обучение современным технологиям.\n\nПомимо этого, мы собираемся реализовать мощный стартап-акселератор, где каждый сможет понять основы создания интересных проектов и здесь же создать и опубликовать свой проект\n\n"
+                                               "<code>{ Этот раздел ещё в разработке }</code>")
+
+
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo,
+                                 reply_markup=ikb)
+
+    png.close()
+
 
 
 callback_event_setpriority = [f"event_setpriority_{index}" for index in range(0,50)]
