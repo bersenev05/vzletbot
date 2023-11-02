@@ -10,6 +10,7 @@ class Learning:
     date = None
     time = None
     location = None
+    priority = None
 
     url_to_tgchat = None
     photo_path = None

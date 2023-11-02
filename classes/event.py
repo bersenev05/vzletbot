@@ -4,12 +4,12 @@ from pathlib import Path
 dir_path = pathlib.Path.cwd()
 
 class Event:
-
     type = "Мероприятие"
     name = None
     date = None
     time = None
     location = None
+    priority = None
 
     url_to_tgchat = None
     photo_path = None

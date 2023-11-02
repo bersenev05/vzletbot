@@ -1,4 +1,4 @@
-from classes.event import Event
+
 import pathlib
 from pathlib import Path
 dir_path = pathlib.Path.cwd()
@@ -21,16 +21,46 @@ async def date(date1):
     yyyymmdd = (int(ddmmyyyy[2]), int(ddmmyyyy[1]), int(ddmmyyyy[0]))
     return datetime.datetime(*yyyymmdd)
 
+
 async def sort_eventbase(eventbase):
 
+    priority_event = []
+    no_priority_event = []
+
     cases = list(eventbase.keys())
-    for x in range(len(cases)):
-        for y in range(x+1,len(cases)):
-            date1 = await date(eventbase[str(x)].date)
-            date2 = await date(eventbase[str(y)].date)
+
+    for event in cases:
+        if eventbase[str(event)].priority == True:
+            priority_event.append(eventbase[str(event)])
+        else:
+            no_priority_event.append(eventbase[str(event)])
+
+
+    for x in range(len(no_priority_event)):
+        for y in range(x+1,len(no_priority_event)):
+            date1 = no_priority_event[x].date
+            date2 = no_priority_event[y].date
             if date1>date2:
-                eventbase[str(x)], eventbase[str(y)] = eventbase[str(y)], eventbase[str(x)]
-    return eventbase
+                no_priority_event[x], no_priority_event[y] = no_priority_event[y], no_priority_event[x]
+
+    for x in range(len(priority_event)):
+        for y in range(x+1,len(priority_event)):
+            date1 = priority_event[x].date
+            date2 = priority_event[y].date
+            if date1>date2:
+                priority_event[x], priority_event[y] = priority_event[y], priority_event[x]
+
+    for_return_base = {}
+    s = 0
+
+    for event in priority_event + no_priority_event:
+        for_return_base[str(s)] = event
+        s+=1
+
+
+    return for_return_base
+
+
 
 async def sort_after_delete(eventbase,location):
     new_eventbase = {}

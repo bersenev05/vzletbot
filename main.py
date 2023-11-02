@@ -32,7 +32,7 @@ class AddEvent(StatesGroup):
     get_photo = State()
 
 
-bot = Bot(token = "6100104762:AAGAm-KNSXIANUBXlHfun1hEUugWjJC7nF4",
+bot = Bot(token = "6100104762:AAGFUHWhkBHRVdBRfLgMYd3xwYyLGMQeLwc",
           parse_mode="HTML")
 dp = Dispatcher(bot,storage=MemoryStorage())
 
@@ -192,9 +192,7 @@ async def city(message: types.CallbackQuery):
     png.close()
 
 
-
-
-
+callback_event_setpriority = [f"event_setpriority_{index}" for index in range(0,50)]
 callback_event_location = [f"event_registration_{index}" for index in range(0,50)]
 callback_delete_event = [f"delete_event_{index}" for index in range(0,50)]
 callback_info_event = [f"info_event_{index}" for index in range(0,50)]
@@ -245,6 +243,12 @@ async def events1(message: types.CallbackQuery):
         ikb.add(InlineKeyboardButton(text="Удалить мероприятие {admin}", callback_data=f"delete_event_{user.location}"))
         ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_event_{user.location}"))
 
+        if event.priority == True:
+            ikb.add(InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
+        else:
+            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
+
+
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -260,6 +264,7 @@ async def events1(message: types.CallbackQuery):
 
     png.close()
 
+callback_learning_setpriority = [f"learning_setpriority_{index}" for index in range(0,50)]
 callback_learning_location = [f"learning_registration_{index}" for index in range(0,50)]
 callback_delete_learning = [f"delete_learning_{index}" for index in range(0,50)]
 callback_info_learning = [f"info_learning_{index}" for index in range(0,50)]
@@ -314,6 +319,10 @@ async def events2(message: types.CallbackQuery):
         ikb.add(InlineKeyboardButton(text="Удалить обучение {admin}", callback_data=f"delete_{key}_{user.location}"))
         ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_{key}_{user.location}"))
 
+        if event.priority == True:
+            ikb.add(InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"learning_setpriority_{user.location}"))
+        else:
+            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"learning_setpriority_{user.location}"))
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -329,6 +338,8 @@ async def events2(message: types.CallbackQuery):
 
     png.close()
 
+
+callback_work_setpriority = [f"work_setpriority_{index}" for index in range(0,50)]
 callback_work_location = [f"work_registration_{index}" for index in range(0,50)]
 callback_delete_work = [f"delete_work_{index}" for index in range(0,50)]
 callback_info_work = [f"info_work_{index}" for index in range(0,50)]
@@ -383,6 +394,10 @@ async def events2(message: types.CallbackQuery):
         ikb.add(InlineKeyboardButton(text="Удалить обучение {admin}", callback_data=f"delete_{key}_{user.location}"))
         ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_{key}_{user.location}"))
 
+        if event.priority == True:
+            ikb.add(InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"work_setpriority_{user.location}"))
+        else:
+            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"work_setpriority_{user.location}"))
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -396,8 +411,6 @@ async def events2(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
-
-
 
 
 #Регистрация
@@ -1260,7 +1273,70 @@ async def info_event(message: types.CallbackQuery):
                                      caption=f"<b>сводка по обучению {workbase[message.data[-1]].name}</b>")
 
 
+#Установка приоритета
+@dp.callback_query_handler(text = callback_learning_setpriority + callback_event_setpriority + callback_work_setpriority)
+async def setpriority_func(message: types.CallbackQuery):
 
+    global workbase
+    global eventbase
+    global learningbase
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    data = message.data.split("_")
+    msg = ""
+    name = ""
+
+    if data[0]=="event":
+
+        if eventbase[data[2]].priority == True:
+            eventbase[data[2]].priority = None
+        else:
+            eventbase[data[2]].priority = True
+        msg = "мероприятие"
+
+        name = eventbase[data[2]].name
+        eventbase = await sort_eventbase(eventbase)
+
+    elif data[0]=="learning":
+        if learningbase[data[2]].priority == True:
+            learningbase[data[2]].priority = None
+        else:
+            learningbase[data[2]].priority = True
+        msg = "обучение"
+        name = learningbase[data[2]].name
+        learningbase = await sort_eventbase(learningbase)
+
+    elif data[0] == "work":
+        if workbase[data[2]].priority == True:
+            workbase[data[2]].priority = None
+        else:
+            workbase[data[2]].priority = True
+        msg = "стажировка"
+        name = workbase[data[2]].name
+        workbase = await sort_eventbase(workbase)
+
+
+    await statisticbot.send_message(chat_id=user.id,
+                                    text=f"<b>{msg}: {name}\nИзменен приоритет</b>")
+
+    ikb = InlineKeyboardMarkup()
+    ikb.add(InlineKeyboardButton("Главное меню",callback_data=user.city))
+
+    png = open(Path(dir_path, "files", "photo", "fio.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"Приоритет изменён. Базы отсортированы")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo,
+                                 reply_markup=ikb)
+
+    png.close()
 
 if __name__ == "__main__":
     executor.start_polling(dp,

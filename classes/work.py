@@ -15,6 +15,7 @@ class Work:
     description = None
     creator = None
     vzletbusiness = None
+    priority = None
 
     registrations = []
 
