@@ -32,7 +32,7 @@ class AddEvent(StatesGroup):
     get_photo = State()
 
 
-bot = Bot(token = "6655005383:AAHs-6kFCkl12zAIp1TVB4m4sXud1GBZUO4",
+bot = Bot(token = "6100104762:AAFaN42huXMmCZnBTGK71V4VI04utfUylyk",
           parse_mode="HTML")
 dp = Dispatcher(bot,storage=MemoryStorage())
 
