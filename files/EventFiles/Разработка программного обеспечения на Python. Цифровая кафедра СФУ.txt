@@ -8,11 +8,12 @@
 
 Создатель: @vanya_slash
 Чат: https://t.me/+9PY3bcf3ZH01MDZi
-Фото: C:\Users\Иван\Desktop\взлёт\vzletbot-main\files\photo\python.jpg
+Фото: C:\Users\Иван\Desktop\vzletbot-main\files\photo\events\python-min.jpg
 
-Бизнес: True
+Город: Красноярск
 
 -----------------------------------------
 
 ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ
 
+1. @vanya_slash, берс, 789

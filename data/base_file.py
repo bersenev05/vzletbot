@@ -24,6 +24,16 @@ async def date(date1):
     return datetime.datetime(*yyyymmdd)
 
 
+async def sort_user_regs(base):
+
+    for x in range(len(base)):
+        for y in range(x+1,len(base)):
+            date1 = await date(base[x].date)
+            date2 = await date(base[y].date)
+            if date1>date2:
+                base[x], base[y] = base[y], base[x]
+    return base
+
 async def sort_eventbase(eventbase):
 
     priority_event = []
@@ -40,15 +50,15 @@ async def sort_eventbase(eventbase):
 
     for x in range(len(no_priority_event)):
         for y in range(x+1,len(no_priority_event)):
-            date1 = no_priority_event[x].date
-            date2 = no_priority_event[y].date
+            date1 = await date(no_priority_event[x].date)
+            date2 = await date(no_priority_event[y].date)
             if date1>date2:
                 no_priority_event[x], no_priority_event[y] = no_priority_event[y], no_priority_event[x]
 
     for x in range(len(priority_event)):
         for y in range(x+1,len(priority_event)):
-            date1 = priority_event[x].date
-            date2 = priority_event[y].date
+            date1 = await date(priority_event[x].date)
+            date2 = await date(priority_event[y].date)
             if date1>date2:
                 priority_event[x], priority_event[y] = priority_event[y], priority_event[x]
 

@@ -10,6 +10,7 @@ class Event:
     time = None
     location = None
     priority = None
+    city = None
 
     url_to_tgchat = None
     photo_path = None
@@ -19,7 +20,7 @@ class Event:
 
     registrations = []
 
-    def __init__(self, name, url_to_tgchat, photo_path, description, creator, date, location, time):
+    def __init__(self, city, name, url_to_tgchat, photo_path, description, creator, date, location, time):
         self.name = name
         self.url_to_tgchat = url_to_tgchat
         self.photo_path = photo_path
@@ -29,6 +30,7 @@ class Event:
         self.location = location
         self.time = time
         self.registrations = []
+        self.city = city
 
     async def GetInfo(self):
 
@@ -42,7 +44,7 @@ class Event:
                   f'<b>Создатель:</b> @{data.base_file.userbase[str(self.creator)].username}\n'
                   f'<b>Чат:</b> {self.url_to_tgchat}\n'
                   f'<b>Фото:</b> {self.photo_path}\n\n'
-                  f'<b>Бизнес:</b> {self.vzletbusiness}\n\n')
+                  f'<b>Город:</b> {self.city}\n\n')
 
         return message
 
@@ -60,7 +62,7 @@ class Event:
                   f'Создатель: @{data.base_file.userbase[str(self.creator)].username}\n'
                   f'Чат: {self.url_to_tgchat}\n'
                   f'Фото: {self.photo_path}\n\n'
-                  f'Бизнес: {self.vzletbusiness}\n\n'
+                  f'Город: {self.city}\n\n'
                    f'-----------------------------------------\n\n')
 
         file.write("ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ\n\n")
