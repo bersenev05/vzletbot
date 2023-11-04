@@ -3,9 +3,8 @@ import pathlib
 from pathlib import Path
 dir_path = pathlib.Path.cwd()
 
-class Learning:
-    type = "Обучение"
-
+class Grant:
+    type = "Грант"
     name = None
     date = None
     time = None

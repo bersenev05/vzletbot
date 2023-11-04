@@ -19,13 +19,12 @@ class Event:
 
     registrations = []
 
-    def __init__(self, name, url_to_tgchat, photo_path, description, creator, vzletbusiness, date, location, time):
+    def __init__(self, name, url_to_tgchat, photo_path, description, creator, date, location, time):
         self.name = name
         self.url_to_tgchat = url_to_tgchat
         self.photo_path = photo_path
         self.description = description
         self.creator = creator
-        self.vzletbusiness = vzletbusiness
         self.date = date
         self.location = location
         self.time = time
