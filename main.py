@@ -37,7 +37,7 @@ class AddCity(StatesGroup):
     get_city = State()
 
 
-bot = Bot(token="6233960605:AAHvSR7D2wPjwHAkp6iVBw0c6mBWQkOZ69U",
+bot = Bot(token="6100104762:AAErbAZGLc6uHLUDhgnKJYfyvlDJMt1x01g",
           parse_mode="HTML")
 dp = Dispatcher(bot, storage=MemoryStorage())
 
