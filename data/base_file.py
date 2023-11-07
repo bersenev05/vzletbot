@@ -16,6 +16,7 @@ workbase = {}
 
 grantbase = {}
 
+key_base = {}
 
 
 async def date(date1):
@@ -41,11 +42,18 @@ async def sort_eventbase(eventbase):
 
     cases = list(eventbase.keys())
 
+    # Получаем сегодняшнюю дату
+    date_list = str(datetime.datetime.now()).split("-")
+    now_date = await date(f"{str(date_list[2].split()[0])}.{str(date_list[1])}.{str(date_list[0])}")
+
     for event in cases:
-        if eventbase[str(event)].priority == True:
-            priority_event.append(eventbase[str(event)])
-        else:
-            no_priority_event.append(eventbase[str(event)])
+
+        if await date(eventbase[str(event)].date)>=now_date:
+
+            if eventbase[str(event)].priority == True:
+                priority_event.append(eventbase[str(event)])
+            else:
+                no_priority_event.append(eventbase[str(event)])
 
 
     for x in range(len(no_priority_event)):

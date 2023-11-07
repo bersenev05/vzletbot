@@ -17,10 +17,11 @@ class Work:
     creator = None
     vzletbusiness = None
     priority = None
+    key = None
 
     registrations = []
 
-    def __init__(self, city, name, url_to_tgchat, photo_path, description, creator, date, location, time):
+    def __init__(self, key, city, name, url_to_tgchat, photo_path, description, creator, date, location, time):
         self.name = name
         self.url_to_tgchat = url_to_tgchat
         self.photo_path = photo_path
@@ -31,6 +32,7 @@ class Work:
         self.time = time
         self.registrations = []
         self.city = city
+        self.key = key
 
     async def GetInfo(self):
 
@@ -63,6 +65,7 @@ class Work:
                   f'Чат: {self.url_to_tgchat}\n'
                   f'Фото: {self.photo_path}\n\n'
                   f'Город: {self.city}\n\n'
+                   f'Ключ: {self.key}\n\n'
                    f'-----------------------------------------\n\n')
 
         file.write("ЗАРЕГИСТРИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ\n\n")

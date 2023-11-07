@@ -6,7 +6,8 @@ from classes.event import Event
 from classes.work import Work
 from classes.grant import Grant
 from classes.learning import Learning
-from data.base_file import userbase, eventbase, sort_eventbase, sort_after_delete, learningbase, workbase, grantbase,date,sort_user_regs
+from data.base_file import userbase, eventbase, sort_eventbase, sort_after_delete, learningbase, workbase, grantbase, \
+    date, sort_user_regs, key_base
 import pathlib
 from pathlib import Path
 
@@ -25,6 +26,8 @@ class StepsForm(StatesGroup):
     get_fio = State()
     get_phone = State()
     get_date = State()
+
+
 class AddEvent(StatesGroup):
     get_name = State()
     get_date = State()
@@ -33,11 +36,15 @@ class AddEvent(StatesGroup):
     get_url = State()
     get_description = State()
     get_photo = State()
+    get_key = State()
+    get_key_mode = State()
+
+
 class AddCity(StatesGroup):
     get_city = State()
 
 
-bot = Bot(token="6100104762:AAErbAZGLc6uHLUDhgnKJYfyvlDJMt1x01g",
+bot = Bot(token="6100104762:AAHvEjKvWnEfQszdmHjOAzHfhBnqj_0JF4k",
           parse_mode="HTML")
 dp = Dispatcher(bot, storage=MemoryStorage())
 
@@ -74,8 +81,16 @@ async def start(message: types.Message):
         ikb.add(InlineKeyboardButton(text=f"📍 {city}", callback_data=city))
     ikb.add(InlineKeyboardButton(text="Хочу добавить свой город!", callback_data="Krasnoyarsk"))
 
+    admin_ikb = InlineKeyboardMarkup()
     if str(user.id) in son_admin:
-        ikb.add(InlineKeyboardButton(text="Добавить город {admin}", callback_data=f"add_city"))
+        admin_ikb.add(InlineKeyboardButton(text="Добавить город {admin}", callback_data=f"add_city"))
+
+    if str(user.id) in son_admin:
+        admin_msg = await bot.send_message(chat_id=user.id,
+                               text = "Вы обладаете правами администратора",
+                               reply_markup = admin_ikb)
+
+        user.admin_ikb = admin_msg.message_id
 
     # получаем фото
     png = open(Path(dir_path, "files", "photo", "start.png"), "rb")
@@ -92,80 +107,12 @@ async def start(message: types.Message):
 
 
 callback_user_regs = [f"reg_{i}" for i in range(50)]
-#Регистрации пользователя
+
+
+# Регистрации пользователя
 @dp.message_handler(commands=["registrations"])
 async def myregs(message: types.Message):
-
     await message.delete()
-
-    #Получаем сегодняшнюю дату
-    date_list = str(datetime.datetime.now()).split("-")
-    now_date = await date(f"{str(date_list[2].split()[0])}.{str(date_list[1])}.{str(date_list[0])}")
-
-    # получаем объект класса юзер. Чисто для укорачивания кода
-    user = userbase[str(message.from_user.id)]
-
-    # добавляем действие
-    await user.AddAction(f"Выбрал")
-
-    if user.city!=None:
-        if user.registrations == []:
-
-            # добавляем клавиатуру
-            ikb = InlineKeyboardMarkup()
-            btn3 = InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city)
-            ikb.add(btn3)
-
-            # Получаем фото
-            png = open(Path(dir_path, "files", "photo", "mainmenu.png"), "rb")
-            photo = types.InputMediaPhoto(png,
-                                          caption="Ты ещё никуда не зарегистрировался!")
-
-            # Редактируем сообщения
-            await bot.edit_message_media(chat_id=user.id,
-                                         message_id=user.last_message,
-                                         media=photo,
-                                         reply_markup=ikb)
-
-            png.close()
-
-        else:
-
-            #сортируем регистрации пользователя, чтобы всё было по датам
-            user.registrations = await sort_user_regs(user.registrations)
-
-            # добавляем клавиатуру
-            ikb = InlineKeyboardMarkup()
-            s=0
-            for i in user.registrations:
-
-                if await date(i.date) >= now_date:
-
-                    forwrite = i.name
-                    if len(i.name)>=15:
-                        forwrite = f"{i.name[:15]}..."
-
-                    ikb.add(InlineKeyboardButton(text = forwrite + f" ({i.date})", callback_data=f"reg_{s}"))
-                s+=1
-
-            ikb.add(InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city))
-
-            # Получаем фото
-            png = open(Path(dir_path, "files", "photo", "mainmenu.png"), "rb")
-            photo = types.InputMediaPhoto(png,
-                                          caption="Нажми на мероприятие и увидишь всю важную инфу!")
-
-            # Редактируем сообщения
-            await bot.edit_message_media(chat_id=user.id,
-                                         message_id=user.last_message,
-                                         media=photo,
-                                         reply_markup=ikb)
-
-            png.close()
-
-#Регистрации пользователя колбэком
-@dp.callback_query_handler(text = "registrations")
-async def myregs(message: types.Message):
 
     # Получаем сегодняшнюю дату
     date_list = str(datetime.datetime.now()).split("-")
@@ -232,9 +179,12 @@ async def myregs(message: types.Message):
 
             png.close()
 
-#Вывод мероприятия, на которое зарегистрирован пользователь
-@dp.callback_query_handler(text = callback_user_regs)
-async def user_regs_info(message: types.CallbackQuery):
+# Регистрации пользователя колбэком
+@dp.callback_query_handler(text="registrations")
+async def myregs(message: types.Message):
+    # Получаем сегодняшнюю дату
+    date_list = str(datetime.datetime.now()).split("-")
+    now_date = await date(f"{str(date_list[2].split()[0])}.{str(date_list[1])}.{str(date_list[0])}")
 
     # получаем объект класса юзер. Чисто для укорачивания кода
     user = userbase[str(message.from_user.id)]
@@ -242,7 +192,71 @@ async def user_regs_info(message: types.CallbackQuery):
     # добавляем действие
     await user.AddAction(f"Выбрал")
 
-    #находим мероприятие которое нужно выдать
+    if user.city != None:
+        if user.registrations == []:
+
+            # добавляем клавиатуру
+            ikb = InlineKeyboardMarkup()
+            btn3 = InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city)
+            ikb.add(btn3)
+
+            # Получаем фото
+            png = open(Path(dir_path, "files", "photo", "mainmenu.png"), "rb")
+            photo = types.InputMediaPhoto(png,
+                                          caption="Ты ещё никуда не зарегистрировался!")
+
+            # Редактируем сообщения
+            await bot.edit_message_media(chat_id=user.id,
+                                         message_id=user.last_message,
+                                         media=photo,
+                                         reply_markup=ikb)
+
+            png.close()
+
+        else:
+
+            # сортируем регистрации пользователя, чтобы всё было по датам
+            user.registrations = await sort_user_regs(user.registrations)
+
+            # добавляем клавиатуру
+            ikb = InlineKeyboardMarkup()
+            s = 0
+            for i in user.registrations:
+
+                if await date(i.date) >= now_date:
+
+                    forwrite = i.name
+                    if len(i.name) >= 15:
+                        forwrite = f"{i.name[:15]}..."
+
+                    ikb.add(InlineKeyboardButton(text=forwrite + f" ({i.date})", callback_data=f"reg_{s}"))
+                s += 1
+
+            ikb.add(InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city))
+
+            # Получаем фото
+            png = open(Path(dir_path, "files", "photo", "mainmenu.png"), "rb")
+            photo = types.InputMediaPhoto(png,
+                                          caption="Нажми на мероприятие и увидишь всю важную инфу!")
+
+            # Редактируем сообщения
+            await bot.edit_message_media(chat_id=user.id,
+                                         message_id=user.last_message,
+                                         media=photo,
+                                         reply_markup=ikb)
+
+            png.close()
+
+# Вывод мероприятий, на которое зарегистрирован пользователь
+@dp.callback_query_handler(text=callback_user_regs)
+async def user_regs_info(message: types.CallbackQuery):
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Выбрал")
+
+    # находим мероприятие которое нужно выдать
     event = user.registrations[int(message.data.split("_")[1])]
 
     # клавиатура
@@ -250,8 +264,6 @@ async def user_regs_info(message: types.CallbackQuery):
     ikb.add(InlineKeyboardButton(text="🔗 Общий чат мероприятия", url=event.url_to_tgchat))
     ikb.add(InlineKeyboardButton(text="Назад", callback_data="registrations"))
     ikb.add(InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city))
-
-
 
     # Получаем фото
     png = open(event.photo_path, "rb")
@@ -294,6 +306,12 @@ async def city(message: types.CallbackQuery):
 
     ikb.add(btn1).add(btn2).add(btn3).add(btn5).add(btn4)
 
+    if str(user.id) in son_admin:
+
+        await bot.edit_message_text(chat_id=user.id,
+                                    text=f"Админка.\n{datetime.datetime.now()}",
+                                    message_id=user.admin_ikb)
+
     # Получаем фото
     png = open(Path(dir_path, "files", "photo", "mainmenu.png"), "rb")
     photo = types.InputMediaPhoto(png,
@@ -307,9 +325,7 @@ async def city(message: types.CallbackQuery):
 
     png.close()
 
-
-
-#переход во взлет бизнес
+# переход во взлет бизнес
 @dp.callback_query_handler(text="business")
 async def business_func(message: types.CallbackQuery):
     # получаем объект класса юзер. Чисто для укорачивания кода
@@ -339,7 +355,7 @@ async def business_func(message: types.CallbackQuery):
 
 
 
-#Добавить город
+# Добавить город
 @dp.callback_query_handler(text="add_city")
 async def addcity_func(message: types.CallbackQuery):
     # получаем объект класса юзер. Чисто для укорачивания кода
@@ -389,7 +405,8 @@ async def getcityname(message: types.Message, state: FSMContext):
                              time="12:00",
                              creator="5965231899",
                              location="Культурная станция Гагарин. Маерчака 17",
-                             city=user.city)
+                             city=user.city,
+                             key="null-key")
 
     ikb = InlineKeyboardMarkup()
     btn1 = InlineKeyboardButton(text="Главное меню", callback_data=user.city)
@@ -408,6 +425,7 @@ async def getcityname(message: types.Message, state: FSMContext):
     cityes.sort(key=lambda x: x[0])
 
     await state.finish()
+
 
 
 
@@ -456,15 +474,28 @@ async def events1(message: types.CallbackQuery):
     ikb.row(btn1, btn2).add(btn3).add(btn5)
 
     if str(user.id) in son_admin:
-        ikb.add(InlineKeyboardButton(text="Добавить мероприятие {admin}", callback_data="add_event"))
-        ikb.add(InlineKeyboardButton(text="Удалить мероприятие {admin}", callback_data=f"delete_event_{user.location}"))
-        ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_event_{user.location}"))
+
+        admin_ikb = InlineKeyboardMarkup()
+        admin_ikb.add(InlineKeyboardButton(text="Добавить мероприятие {admin}", callback_data="add_event"))
+        admin_ikb.add(InlineKeyboardButton(text="Удалить мероприятие {admin}", callback_data=f"delete_event_{user.location}"))
+        admin_ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_event_{user.location}"))
 
         if event.priority == True:
-            ikb.add(
-                InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
+            admin_ikb.add(InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
         else:
-            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
+            admin_ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"event_setpriority_{user.location}"))
+
+        await bot.edit_message_text(chat_id=user.id,
+                                    text=f"<b>Город:</b> {user.city}\n"
+                                         f"<b>Раздел:</b> {event.type}\n"
+                                         f"<b>Наполнение:</b> {len(eventbase[user.city])} шт.\n"
+                                         f"--------------------\n\n"
+                                         f"<b>{event.name}</b>\n"
+                                         f"<b>Реги:</b> {len(event.registrations)} шт.\n"
+                                         f"<b>Создатель:</b> @{userbase[event.creator].username}\n"
+                                         f"<b>Ключ:</b> <code>{event.key}</code>",
+                                    message_id=user.admin_ikb,
+                                    reply_markup=admin_ikb)
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -479,7 +510,6 @@ async def events1(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
-
 
 callback_learning_setpriority = [f"learning_setpriority_{index}" for index in range(0, 50)]
 callback_learning_location = [f"learning_registration_{index}" for index in range(0, 50)]
@@ -530,16 +560,31 @@ async def events2(message: types.CallbackQuery):
     ikb.row(btn1, btn2).add(btn3).add(btn5)
 
     if str(user.id) in son_admin:
-        ikb.add(InlineKeyboardButton(text="Добавить обучение {admin}", callback_data=f"add_{key}"))
-        ikb.add(InlineKeyboardButton(text="Удалить обучение {admin}", callback_data=f"delete_{key}_{user.location}"))
-        ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_{key}_{user.location}"))
+
+        admin_ikb = InlineKeyboardMarkup()
+        admin_ikb.add(InlineKeyboardButton(text=f"Добавить {event.type}", callback_data=f"add_{key}"))
+        admin_ikb.add(
+            InlineKeyboardButton(text=f"Удалить {event.type}", callback_data=f"delete_{key}_{user.location}"))
+        admin_ikb.add(InlineKeyboardButton(text="Сводка", callback_data=f"info_{key}_{user.location}"))
 
         if event.priority == True:
-            ikb.add(
-                InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"learning_setpriority_{user.location}"))
+            admin_ikb.add(
+                InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
         else:
-            ikb.add(
-                InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"learning_setpriority_{user.location}"))
+            admin_ikb.add(
+                InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
+
+        await bot.edit_message_text(chat_id=user.id,
+                                    text=f"<b>Город:</b> {user.city}\n"
+                                         f"<b>Раздел:</b> {event.type}\n"
+                                         f"<b>Наполнение:</b> {len(base)} шт.\n"
+                                         f"--------------------\n\n"
+                                         f"<b>{event.name}</b>\n"
+                                         f"<b>Реги:</b> {len(event.registrations)} шт.\n"
+                                         f"<b>Создатель:</b> @{userbase[event.creator].username}\n"
+                                         f"<b>Ключ:</b> <code>{event.key}</code>",
+                                    message_id=user.admin_ikb,
+                                    reply_markup=admin_ikb)
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -554,7 +599,6 @@ async def events2(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
-
 
 callback_work_setpriority = [f"work_setpriority_{index}" for index in range(0, 50)]
 callback_work_location = [f"work_registration_{index}" for index in range(0, 50)]
@@ -605,14 +649,31 @@ async def events2(message: types.CallbackQuery):
     ikb.row(btn1, btn2).add(btn3).add(btn5)
 
     if str(user.id) in son_admin:
-        ikb.add(InlineKeyboardButton(text="Добавить стажировку {admin}", callback_data=f"add_{key}"))
-        ikb.add(InlineKeyboardButton(text="Удалить стажировку {admin}", callback_data=f"delete_{key}_{user.location}"))
-        ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_{key}_{user.location}"))
+
+        admin_ikb = InlineKeyboardMarkup()
+        admin_ikb.add(InlineKeyboardButton(text=f"Добавить {event.type}", callback_data=f"add_{key}"))
+        admin_ikb.add(
+            InlineKeyboardButton(text=f"Удалить {event.type}", callback_data=f"delete_{key}_{user.location}"))
+        admin_ikb.add(InlineKeyboardButton(text="Сводка", callback_data=f"info_{key}_{user.location}"))
 
         if event.priority == True:
-            ikb.add(InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"work_setpriority_{user.location}"))
+            admin_ikb.add(
+                InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
         else:
-            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"work_setpriority_{user.location}"))
+            admin_ikb.add(
+                InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
+
+        await bot.edit_message_text(chat_id=user.id,
+                                    text=f"<b>Город:</b> {user.city}\n"
+                                         f"<b>Раздел:</b> {event.type}\n"
+                                         f"<b>Наполнение:</b> {len(base)} шт.\n"
+                                         f"--------------------\n\n"
+                                         f"<b>{event.name}</b>\n"
+                                         f"<b>Реги:</b> {len(event.registrations)} шт.\n"
+                                         f"<b>Создатель:</b> @{userbase[event.creator].username}\n"
+                                         f"<b>Ключ:</b> <code>{event.key}</code>",
+                                    message_id=user.admin_ikb,
+                                    reply_markup=admin_ikb)
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -626,7 +687,6 @@ async def events2(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
-
 
 callback_grant_setpriority = [f"grant_setpriority_{index}" for index in range(0, 50)]
 callback_grant_location = [f"grant_registration_{index}" for index in range(0, 50)]
@@ -677,15 +737,31 @@ async def events2(message: types.CallbackQuery):
     ikb.row(btn1, btn2).add(btn3).add(btn5)
 
     if str(user.id) in son_admin:
-        ikb.add(InlineKeyboardButton(text="Добавить грант {admin}", callback_data=f"add_{key}"))
-        ikb.add(InlineKeyboardButton(text="Удалить грант {admin}", callback_data=f"delete_{key}_{user.location}"))
-        ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"info_{key}_{user.location}"))
+
+        admin_ikb = InlineKeyboardMarkup()
+        admin_ikb.add(InlineKeyboardButton(text=f"Добавить {event.type}", callback_data=f"add_{key}"))
+        admin_ikb.add(
+            InlineKeyboardButton(text=f"Удалить {event.type}", callback_data=f"delete_{key}_{user.location}"))
+        admin_ikb.add(InlineKeyboardButton(text="Сводка", callback_data=f"info_{key}_{user.location}"))
 
         if event.priority == True:
-            ikb.add(
+            admin_ikb.add(
                 InlineKeyboardButton(text="✅ Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
         else:
-            ikb.add(InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
+            admin_ikb.add(
+                InlineKeyboardButton(text="Приоритет {admin}", callback_data=f"{key}_setpriority_{user.location}"))
+
+        await bot.edit_message_text(chat_id=user.id,
+                                    text=f"<b>Город:</b> {user.city}\n"
+                                         f"<b>Раздел:</b> {event.type}\n"
+                                         f"<b>Наполнение:</b> {len(base)} шт.\n"
+                                         f"--------------------\n\n"
+                                         f"<b>{event.name}</b>\n"
+                                         f"<b>Реги:</b> {len(event.registrations)} шт.\n"
+                                         f"<b>Создатель:</b> @{userbase[event.creator].username}\n"
+                                         f"<b>Ключ:</b> <code>{event.key}</code>",
+                                    message_id=user.admin_ikb,
+                                    reply_markup=admin_ikb)
 
     png = open(event.photo_path, "rb")
     photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
@@ -960,7 +1036,6 @@ async def registration_finish(message: types.CallbackQuery):
 
 
 
-
 # Добавить мероприятие
 @dp.callback_query_handler(text=["add_event", "add_learning", "add_work", "add_grant"])
 async def add_event(message: types.CallbackQuery):
@@ -1156,7 +1231,40 @@ async def add_event(message: types.Message, state: FSMContext):
                                                f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
                                                f"<b>Ссылка:</b>\n{data['url']}\n\n"
                                                f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
-                                               f"<b>⚠️Отправьте фото. Обязательно в виде файла. Затем немного подождите</b>")
+                                               f"<b>⚠️Введите ключ. Одно любое слово. Ваши клиенты смогут быстро найти ваше мероприятие по этому ключу</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo)
+
+    await AddEvent.get_key.set()
+
+@dp.message_handler(state=AddEvent.get_key)
+async def add_event(message: types.Message, state: FSMContext):
+    # удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Складируем инфу во временной памяти
+    await state.update_data(key=message.text)
+    data = await state.get_data()
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "createevent.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
+                                               f"<b>Ключ:</b>\n<code>{data['key']}</code>\n\n"
+                                               f"<b>⚠️Отправьте фото. Затем немного подождите</b>")
 
     # Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -1186,7 +1294,7 @@ async def add_event(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     ikb = InlineKeyboardMarkup()
-    btn1 = InlineKeyboardButton(text="Опубликовать", callback_data="publicevent")
+    btn1 = InlineKeyboardButton(text="Платная публикация", callback_data="publicevent")
     btn2 = InlineKeyboardButton(text="Заполнить заново", callback_data="add_event")
     btn3 = InlineKeyboardButton(text="Главное меню", callback_data=user.city)
     ikb.add(btn1).add(btn2).add(btn3)
@@ -1199,7 +1307,8 @@ async def add_event(message: types.Message, state: FSMContext):
                                                f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
                                                f"<b>Ссылка:</b>\n{data['url']}\n\n"
                                                f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
-                                               f"<b>Фото загружено:</b>\n<code>{data['photo_path']}</code>\n\n")
+                                               f"<b>Фото загружено:</b>\n<code>{data['photo_path']}</code>\n\n"
+                                               f"<b>Мероприятие опубликовано по ключу {data['key']}</b>")
 
     # Редактируем сообщения
     await bot.edit_message_media(chat_id=user.id,
@@ -1216,7 +1325,8 @@ async def add_event(message: types.Message, state: FSMContext):
                                 date=data['date'],
                                 location=data['location'],
                                 time=data['time'],
-                                city=user.city)
+                                city=user.city,
+                                key=data["key"])
 
     elif user.create_hub == "learning":
         user.create_hub = Learning(name=data['name'],
@@ -1227,7 +1337,8 @@ async def add_event(message: types.Message, state: FSMContext):
                                    date=data['date'],
                                    location=data['location'],
                                    time=data['time'],
-                                   city=user.city)
+                                   city=user.city,
+                                   key=data["key"])
 
     elif user.create_hub == "work":
         user.create_hub = Work(name=data['name'],
@@ -1238,7 +1349,8 @@ async def add_event(message: types.Message, state: FSMContext):
                                date=data['date'],
                                location=data['location'],
                                time=data['time'],
-                               city=user.city)
+                               city=user.city,
+                               key=data["key"])
 
     elif user.create_hub == "grant":
         user.create_hub = Grant(name=data['name'],
@@ -1249,7 +1361,117 @@ async def add_event(message: types.Message, state: FSMContext):
                                 date=data['date'],
                                 location=data['location'],
                                 time=data['time'],
-                                city=user.city)
+                                city=user.city,
+                                key=data["key"])
+
+    # Добавляем эвент в базу по ключам
+    key_base[user.create_hub.key.upper()] = user.create_hub
+    key_base[user.create_hub.key.lower()] = user.create_hub
+    key_base[user.create_hub.key.capitalize()] = user.create_hub
+    callback_keybase_reg.append(f"keybase_reg_{user.create_hub.key}")
+    callback_keybase_info.append(f"keybase_info_{user.create_hub.key}")
+    callback_keybase_delete.append(f"keybase_delete_{user.create_hub.key}")
+
+    await state.finish()
+
+@dp.message_handler(state=AddEvent.get_photo, content_types=ContentType.PHOTO)
+async def add_event(message: types.Message, state: FSMContext):
+    # удаляем сообщение пользователя
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Сохраняем фото
+    data = await state.get_data()
+    photo_name = (data['date'] + data['time'] + str(user.id)).replace('.', '').replace(':', '')
+    await message.photo[-1].download(destination_file=Path(dir_path, 'files', 'photo', 'events', f"{photo_name}.png"))
+
+    # Складируем инфу во временной памяти
+    await state.update_data(photo_path=Path(dir_path, 'files', 'photo', 'events', f"{photo_name}.png"))
+    data = await state.get_data()
+
+    ikb = InlineKeyboardMarkup()
+    btn1 = InlineKeyboardButton(text="Платная публикация", callback_data="publicevent")
+    btn2 = InlineKeyboardButton(text="Заполнить заново", callback_data="add_event")
+    btn3 = InlineKeyboardButton(text="Главное меню", callback_data=user.city)
+    ikb.add(btn1).add(btn2).add(btn3)
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", f"{data['photo_path']}"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"<b>Название:</b>\n<code>{data['name']}</code>\n\n"
+                                               f"<b>Дата:</b>\n<code>{data['date']}</code>\n\n"
+                                               f"<b>Время:</b>\n<code>{data['time']}</code>\n\n"
+                                               f"<b>Место:</b>\n<code>{data['location']}</code>\n\n"
+                                               f"<b>Ссылка:</b>\n{data['url']}\n\n"
+                                               f"<b>Описание:</b>\n<code>{data['description']}</code>\n\n"
+                                               f"<b>Фото загружено:</b>\n<code>{data['photo_path']}</code>\n\n"
+                                               f"<b>Мероприятие опубликовано по ключу {data['key']}</b>")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo,
+                                 reply_markup=ikb)
+
+    if user.create_hub == "event":
+        user.create_hub = Event(name=data['name'],
+                                url_to_tgchat=data['url'],
+                                photo_path=data['photo_path'],
+                                description=data['description'],
+                                creator=str(user.id),
+                                date=data['date'],
+                                location=data['location'],
+                                time=data['time'],
+                                city=user.city,
+                                key=data["key"])
+
+    elif user.create_hub == "learning":
+        user.create_hub = Learning(name=data['name'],
+                                   url_to_tgchat=data['url'],
+                                   photo_path=data['photo_path'],
+                                   description=data['description'],
+                                   creator=str(user.id),
+                                   date=data['date'],
+                                   location=data['location'],
+                                   time=data['time'],
+                                   city=user.city,
+                                   key=data["key"])
+
+    elif user.create_hub == "work":
+        user.create_hub = Work(name=data['name'],
+                               url_to_tgchat=data['url'],
+                               photo_path=data['photo_path'],
+                               description=data['description'],
+                               creator=str(user.id),
+                               date=data['date'],
+                               location=data['location'],
+                               time=data['time'],
+                               city=user.city,
+                               key=data["key"])
+
+    elif user.create_hub == "grant":
+        user.create_hub = Grant(name=data['name'],
+                                url_to_tgchat=data['url'],
+                                photo_path=data['photo_path'],
+                                description=data['description'],
+                                creator=str(user.id),
+                                date=data['date'],
+                                location=data['location'],
+                                time=data['time'],
+                                city=user.city,
+                                key=data["key"])
+
+    # Добавляем эвент в базу по ключам
+    key_base[user.create_hub.key.upper()] = user.create_hub
+    key_base[user.create_hub.key.lower()] = user.create_hub
+    key_base[user.create_hub.key.capitalize()] = user.create_hub
+    callback_keybase_reg.append(f"keybase_reg_{user.create_hub.key}")
+    callback_keybase_info.append(f"keybase_info_{user.create_hub.key}")
+    callback_keybase_delete.append(f"keybase_delete_{user.create_hub.key}")
 
     await state.finish()
 
@@ -1316,6 +1538,7 @@ async def publicevent(message: types.CallbackQuery):
                                  message_id=user.last_message,
                                  media=photo,
                                  reply_markup=ikb)
+
 
 
 
@@ -1449,10 +1672,16 @@ async def delete_event(message: types.CallbackQuery):
 
 
 
+# Колбэки для помойкиyuigu
+callback_keybase_reg = []
+callback_keybase_info = []
+callback_keybase_delete = []
+
+
+
 # Информация о мероприяти
 @dp.callback_query_handler(text=callback_info_event)
 async def info_event(message: types.CallbackQuery):
-
     # получаем объект класса юзер. Чисто для укорачивания кода
     user = userbase[str(message.from_user.id)]
 
@@ -1510,15 +1739,31 @@ async def info_event(message: types.CallbackQuery):
                                      document=open(regfile, "rb"),
                                      caption=f"<b>сводка по гранту:</b>\n{grantbase[user.city][message.data[-1]].name}")
 
+# Информация о эвенте из помойки
+@dp.callback_query_handler(text=callback_keybase_info)
+async def info_event(message: types.CallbackQuery):
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    regfile = await key_base[message.data.split("_")[-1]].GetInfoFile()
+
+    await statisticbot.send_document(chat_id=user.id,
+                                     document=open(regfile, "rb"),
+                                     caption=f"<b>сводка по элементу:</b>\n{key_base[message.data.split('_')[-1]].name}")
 
 
 # Установка приоритета
 @dp.callback_query_handler(
     text=callback_learning_setpriority + callback_event_setpriority + callback_work_setpriority + callback_grant_setpriority)
 async def setpriority_func(message: types.CallbackQuery):
+
     global workbase
     global eventbase
     global learningbase
+    global grantbase
 
     # получаем объект класса юзер. Чисто для укорачивания кода
     user = userbase[str(message.from_user.id)]
@@ -1539,7 +1784,7 @@ async def setpriority_func(message: types.CallbackQuery):
         msg = "мероприятие"
 
         name = eventbase[user.city][data[2]].name
-        eventbase[user.city] = await sort_eventbase(eventbase[user.city])
+
 
     elif data[0] == "learning":
         if learningbase[user.city][data[2]].priority == True:
@@ -1548,7 +1793,7 @@ async def setpriority_func(message: types.CallbackQuery):
             learningbase[user.city][data[2]].priority = True
         msg = "обучение"
         name = learningbase[user.city][data[2]].name
-        learningbase[user.city] = await sort_eventbase(learningbase[user.city])
+
 
     elif data[0] == "work":
         if workbase[user.city][data[2]].priority == True:
@@ -1557,7 +1802,21 @@ async def setpriority_func(message: types.CallbackQuery):
             workbase[user.city][data[2]].priority = True
         msg = "стажировка"
         name = workbase[user.city][data[2]].name
-        workbase[user.city] = await sort_eventbase(workbase[user.city])
+
+
+    elif data[0] == "grant":
+        if grantbase[user.city][data[2]].priority == True:
+            grantbase[user.city][data[2]].priority = None
+        else:
+            grantbase[user.city][data[2]].priority = True
+        msg = "стажировка"
+        name = grantbase[user.city][data[2]].name
+
+
+    eventbase[user.city] = await sort_eventbase(eventbase[user.city])
+    grantbase[user.city] = await sort_eventbase(grantbase[user.city])
+    workbase[user.city] = await sort_eventbase(workbase[user.city])
+    learningbase[user.city] = await sort_eventbase(learningbase[user.city])
 
     await statisticbot.send_message(chat_id=user.id,
                                     text=f"<b>{msg}: {name}\nИзменен приоритет</b>")
@@ -1575,6 +1834,205 @@ async def setpriority_func(message: types.CallbackQuery):
                                  reply_markup=ikb)
 
     png.close()
+
+
+# Регистрация для помойки
+@dp.callback_query_handler(text=callback_keybase_reg)
+async def registration1(message: types.CallbackQuery):
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    if message.data.split("_")[0] == "event":
+        user.registration_hub = eventbase[user.city][message.data[-1]]
+    elif message.data.split("_")[0] == "learning":
+        user.registration_hub = learningbase[user.city][message.data[-1]]
+    elif message.data.split("_")[0] == "work":
+        user.registration_hub = workbase[user.city][message.data[-1]]
+    elif message.data.split("_")[0] == "grant":
+        user.registration_hub = grantbase[user.city][message.data[-1]]
+    else:
+        user.registration_hub = key_base[message.data.split("_")[-1]]
+
+    if user.fio != None and user.phone != None:
+
+        ikb = InlineKeyboardMarkup()
+        btn1 = InlineKeyboardButton(text="Да", callback_data="registration_finish")
+        btn2 = InlineKeyboardButton(text="Изменить", callback_data="registration_start")
+        ikb.add(btn1).add(btn2)
+
+        png = open(user.registration_hub.photo_path, "rb")
+        photo = types.InputMediaPhoto(png, caption=f"<i>🕹 Регистрация</i>\n\n"
+                                                   f"<b>🎟 Событие:</b>\n<code>{user.registration_hub.name}</code>\n\n"
+                                                   f"<b>🗓 Дата:</b>\n<code>{user.registration_hub.date} {user.registration_hub.time}</code>\n\n"
+                                                   f"<b>📍 Место:</b>\n<code>{user.registration_hub.location}</code>\n\n"
+                                                   f"<b>ФИО</b>:\n<code>{user.fio}</code>\n\n"
+                                                   f"<b>Номер</b>:\n<code>{user.phone}</code>\n\n"
+                                                   f"<b>⚠️Проверь правильность ФИО и номера телефона. Всё верно?</b>")
+
+        # Редактируем сообщения
+        await bot.edit_message_media(chat_id=user.id,
+                                     message_id=user.last_message,
+                                     media=photo,
+                                     reply_markup=ikb)
+
+    else:
+
+        # добавляем картинку и текст
+        png = open(user.registration_hub.photo_path, "rb")
+        photo = types.InputMediaPhoto(png, caption=f"<i>🕹 Регистрация</i>\n\n"
+                                                   f"<b>🎟 Событие:</b>\n<code>{user.registration_hub.name}</code>\n\n"
+                                                   f"<b>🗓 Дата:</b>\n<code>{user.registration_hub.date} {user.registration_hub.time}</code>\n\n"
+                                                   f"<b>📍 Место:</b>\n<code>{user.registration_hub.location}</code>\n\n"
+                                                   f"<b>⚠️ Чтобы зарегистрироваться, введи ФИО</b>")
+
+        # Редактируем сообщения
+        await bot.edit_message_media(chat_id=user.id,
+                                     message_id=user.last_message,
+                                     media=photo)
+
+        await StepsForm.get_fio.set()
+
+
+# Удалить элемент из помойки
+@dp.callback_query_handler(text=callback_keybase_delete)
+async def delete_event(message: types.CallbackQuery):
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+    # добавляем действие
+    await user.AddAction(f"Добавить мероприятие")
+
+    # Оповещаем админов
+    for ad in dad_admin:
+        await statisticbot.send_message(chat_id=ad,
+                                        text=f"@{user.username} удалил элемент, получаемый по ключу\n\n"
+                                             f"<b>Название: </b>{key_base[message.data.split('_')[-1]].name}")
+
+    key_base.pop(message.data.split('_')[-1].capitalize())
+    key_base.pop(message.data.split('_')[-1].upper())
+    key_base.pop(message.data.split('_')[-1].lower())
+
+    ikb = InlineKeyboardMarkup()
+    btn1 = InlineKeyboardButton(text="🗂Главное меню", callback_data=user.city)
+    ikb.add(btn1)
+
+    # добавляем картинку и текст
+    png = open(Path(dir_path, "files", "photo", "fio.png"), "rb")
+    photo = types.InputMediaPhoto(png, caption=f"Элемент удален\n\n")
+
+    # Редактируем сообщения
+    await bot.edit_message_media(chat_id=user.id,
+                                 message_id=user.last_message,
+                                 media=photo,
+                                 reply_markup=ikb)
+
+
+
+
+
+
+# Прочие сообщения
+@dp.message_handler()
+async def all_func(message: types.Message):
+    await message.delete()
+
+    # получаем объект класса юзер. Чисто для укорачивания кода
+    user = userbase[str(message.from_user.id)]
+
+
+
+    if message.text in key_base:
+
+        user.city = key_base[message.text].city
+        user.create_hub = key_base[message.text]
+        event = key_base[message.text]
+        # добавляем действие
+        await user.AddAction(f"Выбрал")
+
+        # клавиатура
+        ikb = InlineKeyboardMarkup()
+
+        if str(user.id) in event.registrations:
+            btn3 = InlineKeyboardButton(text="✅ Вы зарегистрированы", url=f"{event.url_to_tgchat}")
+        else:
+            btn3 = InlineKeyboardButton(text="🕹 Зарегистрироваться", callback_data=f"keybase_reg_{message.text}")
+
+        btn5 = InlineKeyboardButton(text="🗂 Все мероприятия города", callback_data=user.city)
+        ikb.add(btn3).add(btn5)
+
+
+        if str(user.id) in son_admin:
+
+            admin_ikb = InlineKeyboardMarkup()
+            bases = list(eventbase[user.city].values()) + list(workbase[user.city].values()) + list(grantbase[user.city].values()) + list(learningbase[user.city].values())
+            if key_base[message.text] in bases:
+
+                if event.type == "Грант":
+                    base = grantbase[user.city]
+                    key = [key for key in base if event.name == base[key].name][0]
+                    admin_ikb.add(InlineKeyboardButton(text="✅ Платная публикация {admin}", callback_data=f"delete_grant_{key}"))
+
+                elif event.type == "Мероприятие":
+                    base = eventbase[user.city]
+                    key = [key for key in base if event.name == base[key].name][0]
+                    admin_ikb.add(InlineKeyboardButton(text="✅ Платная публикация {admin}", callback_data=f"delete_event_{key}"))
+
+                elif event.type == "Обучение":
+                    base = learningbase[user.city]
+                    key = [key for key in base if event.name == base[key].name][0]
+                    admin_ikb.add(InlineKeyboardButton(text="✅ Платная публикация {admin}", callback_data=f"delete_learning_{key}"))
+
+                elif event.type == "Стажировка":
+                    base = workbase[user.city]
+                    key = [key for key in base if event.name == base[key].name][0]
+                    admin_ikb.add(InlineKeyboardButton(text="✅ Платная публикация {admin}", callback_data=f"delete_work_{key}"))
+
+
+
+            else:
+                admin_ikb.add(InlineKeyboardButton(text="Платная публикация {admin}", callback_data=f"publicevent"))
+
+
+
+            admin_ikb.add(
+                InlineKeyboardButton(text="Удалить мероприятие {admin}", callback_data=f"keybase_delete_{message.text}"))
+            admin_ikb.add(InlineKeyboardButton(text="Сводка {admin}", callback_data=f"keybase_info_{message.text}"))
+
+
+
+
+            await bot.edit_message_text(chat_id=user.id,
+                                        text=f"<b>Город:</b> {user.city}\n"
+                                             f"<b>Раздел:</b> {event.type}\n"
+                                             f"<b>Наполнение:</b> {len(key_base)} шт.\n"
+                                             f"--------------------\n\n"
+                                             f"<b>{event.name}</b>\n"
+                                             f"<b>Реги:</b> {len(event.registrations)} шт.\n"
+                                             f"<b>Создатель:</b> @{userbase[event.creator].username}\n"
+                                             f"<b>Ключ:</b> <code>{event.key}</code>\n",
+                                        message_id=user.admin_ikb,
+                                        reply_markup=admin_ikb)
+
+        png = open(event.photo_path, "rb")
+        photo = types.InputMediaPhoto(png, caption=f"<b>{event.name}</b>\n\n"
+                                                   f"{event.description}\n\n"
+                                                   f"<b>Дата:</b> {event.date}\n"
+                                                   f"<b>Время:</b> {event.time}")
+
+        # Редактируем сообщения
+        await bot.edit_message_media(chat_id=user.id,
+                                     message_id=user.last_message,
+                                     media=photo,
+                                     reply_markup=ikb)
+
+        png.close()
+
+    else:
+        for i in son_admin:
+            await statisticbot.send_message(chat_id=i,
+                                            text=f"@{user.username}\n"
+                                                 f"{user.id}\n\n"
+                                                 f"{message.text}")
 
 
 if __name__ == "__main__":

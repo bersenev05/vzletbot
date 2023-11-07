@@ -26,7 +26,8 @@ class User:
     location = None       #место в карусели
     registration_hub = None  #Хаб для регистрации
     create_hub = None        #Хаб для создания эвента
-    priority = None
+    priority = None          #Приоритет в выдаче
+    admin_ikb = None
 
 
 
