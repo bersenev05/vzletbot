@@ -13,6 +13,7 @@ class Learning:
     priority = None
     city = None
     key = None
+    registrationmode = None
 
     url_to_tgchat = None
     photo_path = None
@@ -22,7 +23,7 @@ class Learning:
 
     registrations = []
 
-    def __init__(self,key, city, name, url_to_tgchat, photo_path, description, creator, date, location, time):
+    def __init__(self,key, city, name, url_to_tgchat, photo_path, description, creator, date, location, time, registrationmode):
         self.name = name
         self.url_to_tgchat = url_to_tgchat
         self.photo_path = photo_path
@@ -34,6 +35,7 @@ class Learning:
         self.registrations = []
         self.city = city
         self.key = key
+        self.registrationmode = registrationmode
 
 
     async def GetInfo(self):
@@ -81,5 +83,18 @@ class Learning:
         file.close()
 
         return Path(dir_path, "files", "EventFiles", f"{self.name}.txt")
+
+    async def GetSystemFile(self):
+        system_file = {}
+        system_file['registrations'] = ""
+        for attr in self.__dict__.keys():
+            if attr == 'registrations':
+                for id in self.__dict__[attr]:
+                    system_file[attr] += f'{id}*'
+            elif attr == "photo_path":
+                system_file[attr] = str(self.__dict__[attr])
+            else:
+                system_file[attr] = self.__dict__[attr]
+        return system_file
 
 

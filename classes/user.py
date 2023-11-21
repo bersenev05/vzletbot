@@ -2,7 +2,7 @@ from datetime import datetime
 
 dad_admin = ["5965231899"]
 son_admin = ["5965231899"]
-cityes = ["Красноярск"]
+cityes = ["Красноярск", "Другой город"]
 
 class User:
 
@@ -47,6 +47,7 @@ class User:
         self.location = None
         self.registration_hub = None
         self.create_hub = None
+        self.admin_ikb = None
 
     async def AddAction(self, action):
         time = datetime.now().strftime("%d.%m %H:%M:%S")
@@ -56,5 +57,19 @@ class User:
         message = f"<b>username:</b> @{self.username}\n"\
                   f"<b>id:</b> <code>{self.id}</code>\n"
         return message
+
+    async def GetSystemFile(self):
+        system_file = {}
+        system_file['actions'] = ''
+        system_file['registrations'] = ''
+        for attr in self.__dict__.keys():
+            if attr == 'registrations':
+                system_file[attr] = ''
+            elif attr == 'actions':
+                for event in self.__dict__[attr]:
+                    system_file[attr]+=f'{event}*'
+            else:
+                system_file[attr] = str(self.__dict__[attr])
+        return system_file
 
 
